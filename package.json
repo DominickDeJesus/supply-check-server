@@ -1,0 +1,24 @@
+{
+  "name": "twilio-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "node server",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DominickDeJesus/twilio-server.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DominickDeJesus/twilio-server/issues"
+  },
+  "homepage": "https://github.com/DominickDeJesus/twilio-server#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "twilio": "^3.55.1"
+  }
+}
