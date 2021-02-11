@@ -1,20 +1,29 @@
-// Download the helper library from https://www.twilio.com/docs/node/install
-// Your Account Sid and Auth Token from twilio.com/console
-// and set the environment variables. See http://twil.io/secure
 require("dotenv").config();
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = require("twilio")(accountSid, authToken);
+const cron = require("node-schedule");
 const http = require("http");
 const express = require("express");
 const MessagingResponse = require("twilio").twiml.MessagingResponse;
-const supplyChecker = require("./supplyChecker");
+const SupplyChecker = require("./supplyChecker");
 const app = express();
+const URL =
+  "https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
 
-supplyChecker();
+const sc = new SupplyChecker(URL);
+const { getTimestamp } = require("./utils");
+
+sc.init()
+  .then(() =>
+    cron.scheduleJob("*/5 * * * *", async function () {
+      await sc.checkStock();
+    })
+  )
+  .catch((error) => {
+    console.log(error);
+  });
+
 app.use(express.urlencoded({ extended: false }));
 
-app.post("/sms", (req, res) => {
+app.post("/sms", async (req, res) => {
   const twiml = new MessagingResponse();
   const textResponse = req.body.Body.toLowerCase();
   console.log(req.body.Body);
@@ -23,10 +32,13 @@ app.post("/sms", (req, res) => {
       twiml.message("Server is running!");
       break;
     case "last":
-      twiml.message("");
+      twiml.message(`Last in stock on: ${sc.lastMessageDate}`);
       break;
     case "refresh":
-      twiml.message("Hi right back to you");
+      const inStock = await sc.checkStock();
+      twiml.message(
+        `Checking status now... ${inStock ? "in stock!!!" : "not in stock."} `
+      );
       break;
     default:
       twiml.message(
@@ -39,5 +51,5 @@ app.post("/sms", (req, res) => {
 });
 
 http.createServer(app).listen(1337, () => {
-  console.log("Express server listening on port 1337");
+  console.log(getTimestamp(), " Express server listening on port 1337");
 });
