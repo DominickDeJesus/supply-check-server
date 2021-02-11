@@ -8,14 +8,32 @@ const client = require("twilio")(accountSid, authToken);
 const http = require("http");
 const express = require("express");
 const MessagingResponse = require("twilio").twiml.MessagingResponse;
-
+const supplyChecker = require("./supplyChecker");
 const app = express();
+
+supplyChecker();
+app.use(express.urlencoded({ extended: false }));
 
 app.post("/sms", (req, res) => {
   const twiml = new MessagingResponse();
-
-  twiml.message("The Robots are coming! Head for the hills!");
-
+  const textResponse = req.body.Body.toLowerCase();
+  console.log(req.body.Body);
+  switch (textResponse) {
+    case "status":
+      twiml.message("Server is running!");
+      break;
+    case "last":
+      twiml.message("");
+      break;
+    case "refresh":
+      twiml.message("Hi right back to you");
+      break;
+    default:
+      twiml.message(
+        'Type: \n"status" - server status\n"last" - last date in stock\n"refresh" - force refresh of page'
+      );
+      break;
+  }
   res.writeHead(200, { "Content-Type": "text/xml" });
   res.end(twiml.toString());
 });
