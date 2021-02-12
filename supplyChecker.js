@@ -10,7 +10,10 @@ class SupplyChecker {
     this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
     this.browserOption =
       process.platform === "linux"
-        ? { executablePath: "/usr/bin/chromium-browser" }
+        ? {
+            args: ["--no-sandbox"],
+            executablePath: "/usr/bin/chromium-browser",
+          }
         : null;
   }
   async init() {
