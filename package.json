@@ -26,6 +26,9 @@
     "puppeteer": "^7.0.4",
     "twilio": "^3.55.1"
   },
+  "engines": {
+    "node": ">=14"
+  },
   "devDependencies": {
     "nodemon": "^2.0.7"
   }
