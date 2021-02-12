@@ -1,5 +1,7 @@
 {
-  "dokku": {
-    "predeploy": "node node_modules/puppeteer/install.js"
+  "scripts": {
+    "dokku": {
+      "predeploy": "node node_modules/puppeteer/install.js"
+    }
   }
 }
