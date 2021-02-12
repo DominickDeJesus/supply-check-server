@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "test": "nodemon server",
-    "start": "node server.js"
+    "start": "node server.js",
+    "heroku-postbuild": "node node_modules/puppeteer/install.js"
   },
   "repository": {
     "type": "git",
