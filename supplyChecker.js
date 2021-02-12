@@ -13,7 +13,7 @@ class SupplyChecker {
         ? {
             args: ["--no-sandbox"],
             executablePath:
-              "/app/node_modules/puppeteer/.local-chromium/linux-848005;",
+              "/app/node_modules/puppeteer/.local-chromium/linux-848005",
           }
         : null;
   }
