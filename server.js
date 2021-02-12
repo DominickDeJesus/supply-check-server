@@ -32,7 +32,7 @@ app.post("/sms", async (req, res) => {
       twiml.message("Server is running!");
       break;
     case "last":
-      twiml.message(`Last in stock on: ${sc.lastMessageDate}`);
+      twiml.message(`Last in stock on: ${sc.lastMessageDate || "Unknown."}`);
       break;
     case "refresh":
       const inStock = await sc.checkStock();
