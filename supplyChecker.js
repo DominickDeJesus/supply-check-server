@@ -12,7 +12,8 @@ class SupplyChecker {
       process.platform === "linux"
         ? {
             args: ["--no-sandbox"],
-            executablePath: "chromium-browser",
+            executablePath:
+              "/app/node_modules/puppeteer/.local-chromium/linux-848005;",
           }
         : null;
   }
