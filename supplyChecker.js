@@ -12,7 +12,7 @@ class SupplyChecker {
       process.platform === "linux"
         ? {
             args: ["--no-sandbox"],
-            executablePath: "/usr/bin/chromium-browser",
+            executablePath: "chromium-browser",
           }
         : null;
   }
