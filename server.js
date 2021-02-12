@@ -29,7 +29,9 @@ app.post("/sms", async (req, res) => {
   console.log(req.body.Body);
   switch (textResponse) {
     case "status":
-      twiml.message("Server is running!");
+      twiml.message(
+        `Server is running! Browser initialized: ${sc.finishedInit}`
+      );
       break;
     case "last":
       twiml.message(`Last in stock on: ${sc.lastMessageDate || "Unknown."}`);
