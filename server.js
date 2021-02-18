@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: false }));
 
 app.post("/sms", async (req, res) => {
   const twiml = new MessagingResponse();
-  const textResponse = req.body.Body.toLowerCase();
+  const textResponse = req.body.Body.toLowerCase().trim();
   console.log(req.body.Body);
   switch (textResponse) {
     case "status":
