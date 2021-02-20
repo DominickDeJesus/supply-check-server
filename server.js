@@ -43,10 +43,8 @@ app.post("/sms", async (req, res) => {
         );
         break;
       case "init":
-        const inStock = await sc.checkStock();
-        twiml.message(
-          `Checking status now... ${inStock ? "in stock!!!" : "not in stock."} `
-        );
+        await sc.init();
+        twiml.message(`Now initializing the stock checker.`);
         break;
       default:
         twiml.message(
