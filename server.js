@@ -25,9 +25,9 @@ app.use(express.urlencoded({ extended: false }));
 
 app.post("/sms", async (req, res) => {
   const twiml = new MessagingResponse();
-  const textResponse = req.body.Body.toLowerCase().trim();
+  const textResponse = req.body.Body.split(" ");
   try {
-    switch (textResponse) {
+    switch (textResponse[0]) {
       case "status":
         twiml.message(
           `Server is running! Browser initialized: ${sc.finishedInit}`
@@ -46,9 +46,21 @@ app.post("/sms", async (req, res) => {
         await sc.init();
         twiml.message(`Now initializing the stock checker.`);
         break;
+      case "change":
+        if (textResponse[1].includes("bestbuy.com")) {
+          sc.url = textResponse[1];
+          twiml.message(`Url to check was changed to ${textResponse[1]}.`);
+        } else {
+          twiml.message(
+            `Url was not changed, please follow this format:\nchange bestbuy.com/example/product/page`
+          );
+        }
+        break;
       default:
         twiml.message(
-          'Type: \n"status" - server status\n"last" - last date in stock\n"refresh" - force refresh of page'
+          'Type: \n"status" - server status\n"last" - last date in stock' +
+            '\n"refresh" - force refresh of page' +
+            '\n"init" - initialize the stock checker\n"change" - change the url to check\n'
         );
         break;
     }
