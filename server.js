@@ -48,7 +48,7 @@ app.post("/sms", async (req, res) => {
         break;
       case "change":
         if (textResponse[1].includes("bestbuy.com")) {
-          sc.url = textResponse[1];
+          await sc.changeUrl(textResponse[1]);
           twiml.message(`Url to check was changed to ${textResponse[1]}.`);
         } else {
           twiml.message(

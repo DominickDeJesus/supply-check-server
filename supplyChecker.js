@@ -82,6 +82,14 @@ class SupplyChecker {
     }
   }
 
+  async changeUrl(url) {
+    this.url = url;
+    this.lastMessageDate = null;
+    await this.page.goto(this.url, {
+      waitUntil: "load",
+    });
+  }
+
   async screenshot() {
     if (!this.finishedInit)
       throw new Error("SupplyChecker has not been initialized!");
