@@ -27,7 +27,7 @@ app.post("/sms", async (req, res) => {
   const twiml = new MessagingResponse();
   const textResponse = req.body.Body.split(" ");
   try {
-    switch (textResponse[0]) {
+    switch (textResponse[0].toLowerCase()) {
       case "status":
         twiml.message(
           `Server is running! Browser initialized: ${sc.finishedInit}`
