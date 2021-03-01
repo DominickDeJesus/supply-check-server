@@ -48,19 +48,22 @@ app.post("/sms", async (req, res) => {
         break;
       case "change":
         if (textResponse[1].includes("bestbuy.com")) {
-          await sc.changeUrl(textResponse[1]);
-          twiml.message(`Url to check was changed to ${textResponse[1]}.`);
+          sc.changeUrl(textResponse[1]);
+          twiml.message(`changing url to ${textResponse[1]}.`);
         } else {
           twiml.message(
             `Url was not changed, please follow this format:\nchange bestbuy.com/example/product/page`
           );
         }
         break;
+      case "url":
+        twiml.message(`Url to track: ${sc.url}`);
+        break;
       default:
         twiml.message(
           'Type: \n"status" - server status\n"last" - last date in stock' +
-            '\n"refresh" - force refresh of page' +
-            '\n"init" - initialize the stock checker\n"change" - change the url to check\n'
+          '\n"refresh" - force refresh of page' +
+          '\n"init" - initialize the stock checker\n"change" - change the url to check\n'
         );
         break;
     }
