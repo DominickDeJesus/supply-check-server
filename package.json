@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "nodemon server",
+    "dev": "nodemon server",
+    "test": "nodemon test.js",
     "start": "node server.js",
     "heroku-postbuild": "node node_modules/puppeteer/install.js"
   },
