@@ -86,6 +86,7 @@ class SupplyChecker {
 	async changeUrl(url) {
 		this.url = url;
 		this.lastMessageDate = null;
+		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
