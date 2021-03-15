@@ -7,6 +7,7 @@ class SupplyChecker {
 		this.finishedInit = false;
 		this.url = url;
 		this.lastMessageDate = null;
+		this.lastScreenPath = null;
 		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
@@ -94,8 +95,9 @@ class SupplyChecker {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
 
+		this.lastScreenPath = `tmp/screenshots/${this.lastMessageDate}-screenshot.png`;
 		await this.page.screenshot({
-			path: `./screenshots/${this.lastMessageDate}-screenshot.png`,
+			path: this.lastScreenPath,
 			fullPage: true,
 		});
 	}
@@ -111,6 +113,7 @@ class SupplyChecker {
 			const message = await client.messages.create({
 				body: `In stock alert!!! \n\n${url}`,
 				from: process.env.FROM_PHONE,
+				mediaUrl: this.lastScreenPath,
 				to: process.env.TO_PHONE,
 			});
 
