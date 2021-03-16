@@ -18,13 +18,14 @@ sc.init()
 		})
 	)
 	.catch((error) => {
-		console.log(error);
+		console.log(error.message);
 	});
 
 app.use(express.urlencoded({ extended: false }));
 
 app.post("/sms", async (req, res) => {
 	const twiml = new MessagingResponse();
+	console.log(getTimestamp(), " ", req.body.Body);
 	const textResponse = req.body.Body.split(" ");
 	try {
 		switch (textResponse[0].toLowerCase()) {
@@ -48,8 +49,8 @@ app.post("/sms", async (req, res) => {
 				break;
 			case "change":
 				if (textResponse[1].includes("bestbuy.com")) {
-					sc.changeUrl(textResponse[1]);
 					twiml.message(`changing url to ${textResponse[1]}.`);
+					sc.changeUrl(textResponse[1]);
 				} else {
 					twiml.message(
 						`Url was not changed, please follow this format:\nchange bestbuy.com/example/product/page`

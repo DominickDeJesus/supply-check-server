@@ -26,6 +26,19 @@ class SupplyChecker {
 
 		this.page = await this.browser.newPage();
 		await this.page.setDefaultNavigationTimeout(0);
+		await this.page.setRequestInterception(true);
+
+		this.page.on("request", (req) => {
+			if (
+				req.resourceType() == "stylesheet" ||
+				req.resourceType() == "font" ||
+				req.resourceType() == "image"
+			) {
+				req.abort();
+			} else {
+				req.continue();
+			}
+		});
 
 		await this.page.goto(this.url, {
 			waitUntil: "load",
@@ -43,9 +56,8 @@ class SupplyChecker {
 			(await this.isInStock(this.page, this.tag)) &&
 			!isToday(this.lastMessageDate)
 		) {
-			this.sendTextNotification(this.url);
-			lastMessageDate = new Date();
 			await this.screenshot();
+			await this.sendTextNotification(this.url);
 			return true;
 		}
 		return false;
@@ -90,17 +102,22 @@ class SupplyChecker {
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
+		console.log(getTimestamp(), "Changed the url to " + url);
+		await this.checkStock();
 	}
 
 	async screenshot() {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
-
-		this.lastScreenPath = `tmp/screenshots/${this.lastMessageDate}-screenshot.png`;
+		const cloudinary = require("cloudinary").v2;
+		this.lastMessageDate = new Date();
+		const tempPath = `./screenshot.png`;
 		await this.page.screenshot({
-			path: this.lastScreenPath,
+			path: tempPath,
 			fullPage: true,
 		});
+		const response = await cloudinary.uploader.upload(tempPath);
+		this.lastScreenPath = response.secure_url;
 	}
 	async sendTextNotification(url) {
 		if (!this.finishedInit)
@@ -113,9 +130,9 @@ class SupplyChecker {
 
 			const message = await client.messages.create({
 				body: `In stock alert!!! \n\n${url}`,
-				from: process.env.FROM_PHONE,
+				from: process.env.TWILIO_PHONE_NUM,
 				mediaUrl: this.lastScreenPath,
-				to: process.env.TO_PHONE,
+				to: process.env.TO_PHONE_NUM,
 			});
 
 			console.log(getTimestamp(), " Message sent! ", message.sid);
