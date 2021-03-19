@@ -5,6 +5,7 @@ const { getTimestamp, isToday } = require("./utils");
 class SupplyChecker {
 	constructor(url) {
 		this.finishedInit = false;
+		this.status = "uninitialized";
 		this.url = url;
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
@@ -12,8 +13,8 @@ class SupplyChecker {
 		this.browserOption =
 			process.platform === "linux"
 				? {
-						args: ["--no-sandbox"],
-				  }
+					args: ["--no-sandbox"],
+				}
 				: null;
 	}
 	async init() {
@@ -44,13 +45,14 @@ class SupplyChecker {
 			waitUntil: "load",
 		});
 		this.finishedInit = true;
+		this.status = "initialized"
 		console.log(getTimestamp(), " Finished initializing");
 	}
 
 	async checkStock() {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
-
+		this.status = "loading"
 		await this.page.reload();
 		if (
 			(await this.isInStock(this.page, this.tag)) &&
@@ -58,8 +60,10 @@ class SupplyChecker {
 		) {
 			await this.screenshot();
 			await this.sendTextNotification(this.url);
+			this.status = "waiting";
 			return true;
 		}
+		this.status = "waiting";
 		return false;
 	}
 
@@ -96,6 +100,7 @@ class SupplyChecker {
 	}
 
 	async changeUrl(url) {
+		this.status = "changing"
 		this.url = url;
 		this.lastMessageDate = null;
 		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
@@ -122,6 +127,7 @@ class SupplyChecker {
 	async sendTextNotification(url) {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
+		this.status = "texting"
 		try {
 			const client = require("twilio")(
 				process.env.TWILIO_ACCOUNT_SID,

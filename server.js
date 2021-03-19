@@ -31,7 +31,7 @@ app.post("/sms", async (req, res) => {
 		switch (textResponse[0].toLowerCase()) {
 			case "status":
 				twiml.message(
-					`Server is running! Browser initialized: ${sc.finishedInit}`
+					`Server is running! Status: ${sc.status}`
 				);
 				break;
 			case "last":
@@ -63,8 +63,8 @@ app.post("/sms", async (req, res) => {
 			default:
 				twiml.message(
 					'Type: \n"status" - server status\n"last" - last date in stock' +
-						'\n"refresh" - force refresh of page' +
-						'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
+					'\n"refresh" - force refresh of page' +
+					'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
 				);
 				break;
 		}
