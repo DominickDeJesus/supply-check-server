@@ -7,19 +7,12 @@ const SupplyChecker = require("./supplyChecker");
 const app = express();
 const URL =
 	"https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
+const { workerPool, runWorker } = require("./main");
 
-const sc = new SupplyChecker(URL);
+runWorker(URL, "bestbuy");
+const sc = workerPool[0];
+
 const { getTimestamp } = require("./utils");
-
-sc.init()
-	.then(() =>
-		cron.scheduleJob("*/5 * * * *", async function () {
-			await sc.checkStock();
-		})
-	)
-	.catch((error) => {
-		console.log(error.message);
-	});
 
 app.use(express.urlencoded({ extended: false }));
 
@@ -30,9 +23,7 @@ app.post("/sms", async (req, res) => {
 	try {
 		switch (textResponse[0].toLowerCase()) {
 			case "status":
-				twiml.message(
-					`Server is running! Status: ${sc.status}`
-				);
+				twiml.message(`Server is running! Status: ${sc.status}`);
 				break;
 			case "last":
 				twiml.message(`Last in stock on: ${sc.lastMessageDate || "Unknown."}`);
@@ -60,11 +51,17 @@ app.post("/sms", async (req, res) => {
 			case "url":
 				twiml.message(`Url to track: ${sc.url}`);
 				break;
+			case "new":
+				runWorker(textResponse[1].toLowerCase(), textResponse[2].toLowerCase());
+				twiml.message(
+					`Adding new tracker: ${textResponse[1].toLowerCase()} ${textResponse[2].toLowerCase()}`
+				);
+				break;
 			default:
 				twiml.message(
 					'Type: \n"status" - server status\n"last" - last date in stock' +
-					'\n"refresh" - force refresh of page' +
-					'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
+						'\n"refresh" - force refresh of page' +
+						'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
 				);
 				break;
 		}

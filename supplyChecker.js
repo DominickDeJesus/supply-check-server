@@ -1,9 +1,9 @@
 require("dotenv").config();
 const puppeteer = require("puppeteer");
-const { getTimestamp, isToday } = require("./utils");
 
 class SupplyChecker {
-	constructor(url) {
+	constructor(url, name) {
+		this.name = name;
 		this.finishedInit = false;
 		this.status = "uninitialized";
 		this.url = url;
@@ -13,12 +13,12 @@ class SupplyChecker {
 		this.browserOption =
 			process.platform === "linux"
 				? {
-					args: ["--no-sandbox"],
-				}
+						args: ["--no-sandbox"],
+				  }
 				: null;
 	}
 	async init() {
-		console.log(getTimestamp(), " Initializing browser");
+		this.print("Initializing browser");
 
 		this.browser = await puppeteer.launch({
 			headless: true,
@@ -45,15 +45,17 @@ class SupplyChecker {
 			waitUntil: "load",
 		});
 		this.finishedInit = true;
-		this.status = "initialized"
-		console.log(getTimestamp(), " Finished initializing");
+		this.status = "initialized";
+		this.print("Finished initializing");
 	}
 
 	async checkStock() {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
-		this.status = "loading"
+		this.status = "loading";
+		this.print("checking stock");
 		await this.page.reload();
+		this.print("reloaded");
 		if (
 			(await this.isInStock(this.page, this.tag)) &&
 			!isToday(this.lastMessageDate)
@@ -72,42 +74,38 @@ class SupplyChecker {
 			throw new Error("SupplyChecker has not been initialized!");
 		const $ = require("cheerio");
 		try {
-			console.log(getTimestamp(), " Loading page content");
+			this.print("Loading page content");
 			const html = await page.content();
 			const buttonText = $(tag, html).text();
 
 			if (buttonText.toLocaleLowerCase() === "sold out") {
-				console.log(
-					getTimestamp(),
-					` Out of stock! Tag content: ${buttonText}`
-				);
+				this.print(`Out of stock! Tag content: ${buttonText}`);
 				return false;
 			} else if (buttonText.toLocaleLowerCase().includes("add")) {
-				console.log(getTimestamp(), " In stock!!! Tag content: ", buttonText);
+				this.print("In stock!!! Tag content: ", buttonText);
 				return true;
 			} else {
-				console.log(
-					getTimestamp(),
-					" Button content unknown! Tag html content: ",
+				this.print(
+					"Button content unknown! Tag html content: ",
 					`${$(tag, html).html()}`
 				);
 				return false;
 			}
 		} catch (error) {
-			console.log(error);
+			this.print(this.name, error);
 			return false;
 		}
 	}
 
 	async changeUrl(url) {
-		this.status = "changing"
+		this.status = "changing";
 		this.url = url;
 		this.lastMessageDate = null;
 		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
-		console.log(getTimestamp(), "Changed the url to " + url);
+		this.print("Changed the url to " + url);
 		await this.checkStock();
 	}
 
@@ -127,7 +125,7 @@ class SupplyChecker {
 	async sendTextNotification(url) {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
-		this.status = "texting"
+		this.status = "texting";
 		try {
 			const client = require("twilio")(
 				process.env.TWILIO_ACCOUNT_SID,
@@ -141,15 +139,33 @@ class SupplyChecker {
 				to: process.env.TO_PHONE_NUM,
 			});
 
-			console.log(getTimestamp(), " Message sent! ", message.sid);
+			this.print("Message sent! ", message.sid);
 		} catch (error) {
-			console.log(
-				getTimestamp(),
-				"Something went wrong, message was not sent\n",
-				error
-			);
+			this.print("Something went wrong, message was not sent\n", error);
 		}
 	}
+
+	getTimestamp() {
+		return (
+			"[" +
+			new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) +
+			"]"
+		);
+	}
+	print(...message) {
+		const time = this.getTimestamp();
+		console.log(time, this.name + ":", ...message);
+	}
+
+	isToday = (someDate) => {
+		if (!someDate) return false;
+		const today = new Date();
+		return (
+			someDate.getDate() == today.getDate() &&
+			someDate.getMonth() == today.getMonth() &&
+			someDate.getFullYear() == today.getFullYear()
+		);
+	};
 }
 
 module.exports = SupplyChecker;
