@@ -2,10 +2,11 @@
 const workerPool = [];
 
 const { Worker } = require("worker_threads");
+const { getTimestamp } = require("../utils");
 
 function runService(workerData) {
 	return new Promise((resolve, reject) => {
-		const worker = new Worker("./service.js", {
+		const worker = new Worker("./workers/service.js", {
 			workerData,
 		});
 		worker.on("message", resolve);
@@ -22,4 +23,13 @@ async function runWorker(url, name) {
 	console.log(result);
 }
 
-module.exports = { workerPool, runWorker };
+function getStatus(workers) {
+	// if (singleWorker) return ` ${singleWorker.name} ${singleWorker.status}`;
+	return workerPool
+		.map((worker) => {
+			return `${worker.name} ${worker.status} \n`;
+		})
+		.join("");
+}
+
+module.exports = { workerPool, runWorker, getStatus };

@@ -1,13 +1,11 @@
 require("dotenv").config();
-const cron = require("node-schedule");
 const http = require("http");
 const express = require("express");
 const MessagingResponse = require("twilio").twiml.MessagingResponse;
-const SupplyChecker = require("./supplyChecker");
 const app = express();
 const URL =
 	"https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
-const { workerPool, runWorker } = require("./main");
+const { workerPool, runWorker, getStatus } = require("./workers/main");
 
 runWorker(URL, "bestbuy");
 const sc = workerPool[0];
@@ -18,12 +16,15 @@ app.use(express.urlencoded({ extended: false }));
 
 app.post("/sms", async (req, res) => {
 	const twiml = new MessagingResponse();
-	console.log(getTimestamp(), " ", req.body.Body);
+	console.log(getTimestamp(), req.body.Body);
 	const textResponse = req.body.Body.split(" ");
+	// sc = getScraper();
 	try {
 		switch (textResponse[0].toLowerCase()) {
 			case "status":
-				twiml.message(`Server is running! Status: ${sc.status}`);
+				const stat = getStatus(workerPool);
+				console.log(stat);
+				twiml.message(`Server is running! ${stat} other stuff`);
 				break;
 			case "last":
 				twiml.message(`Last in stock on: ${sc.lastMessageDate || "Unknown."}`);
@@ -57,6 +58,20 @@ app.post("/sms", async (req, res) => {
 					`Adding new tracker: ${textResponse[1].toLowerCase()} ${textResponse[2].toLowerCase()}`
 				);
 				break;
+			case "kill":
+				const worker = workerPool.find(
+					(worker) => worker.name === textResponse[1].toLowerCase()
+				);
+				if (worker) {
+					worker.terminate();
+					twiml.message("Worker terminated!");
+				} else {
+					twiml.message(
+						`Could not find worker named: ${textResponse[1].toLowerCase()}`
+					);
+				}
+				break;
+
 			default:
 				twiml.message(
 					'Type: \n"status" - server status\n"last" - last date in stock' +

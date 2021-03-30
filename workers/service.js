@@ -1,5 +1,5 @@
-const { workerData, parentPort, name } = require("worker_threads");
-const SupplyChecker = require("./supplyChecker");
+const { workerData, parentPort } = require("worker_threads");
+const SupplyChecker = require("../supplyChecker");
 const cron = require("node-schedule");
 const { workerPool } = require("./main.js");
 // You can do any heavy stuff here, in a synchronous way
