@@ -6,10 +6,10 @@ class SupplyChecker {
 		this.name = name;
 		this.finishedInit = false;
 		this.status = "uninitialized";
-		this.url = url;
+		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
-		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
+		this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
 				? {
@@ -54,8 +54,12 @@ class SupplyChecker {
 			throw new Error("SupplyChecker has not been initialized!");
 		this.status = "loading";
 		this.print("checking stock");
-		await this.page.reload();
+		await this.page.reload({
+			waitUntil: "load",
+		});
 		this.print("reloaded");
+		await this.page.waitForSelector(this.tag);
+
 		if (
 			(await this.isInStock(this.page, this.tag)) &&
 			!isToday(this.lastMessageDate)
@@ -85,6 +89,7 @@ class SupplyChecker {
 				this.print("In stock!!! Tag content: ", buttonText);
 				return true;
 			} else {
+				this.screenshot();
 				this.print(
 					"Button content unknown! Tag html content: ",
 					`${$(tag, html).html()}`
@@ -105,6 +110,7 @@ class SupplyChecker {
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
+
 		this.print("Changed the url to " + url);
 		await this.checkStock();
 	}

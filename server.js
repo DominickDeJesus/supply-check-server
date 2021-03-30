@@ -5,9 +5,11 @@ const MessagingResponse = require("twilio").twiml.MessagingResponse;
 const app = express();
 const URL =
 	"https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
+const PS5 =
+	"https://www.bestbuy.com/site/sony-playstation-5-console/6426149.p?skuId=6426149";
 const { workerPool, runWorker, getStatus } = require("./workers/main");
 
-runWorker(URL, "bestbuy");
+runWorker(PS5, "bestbuy");
 const sc = workerPool[0];
 
 const { getTimestamp } = require("./utils");
