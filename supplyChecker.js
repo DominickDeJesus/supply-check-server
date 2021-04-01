@@ -18,6 +18,7 @@ class SupplyChecker {
 				: null;
 	}
 	async init() {
+		if (this.status !== "uninitialized") return;
 		this.print("Initializing browser");
 
 		this.browser = await puppeteer.launch({
