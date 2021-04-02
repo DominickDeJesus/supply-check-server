@@ -1,22 +1,14 @@
 require("dotenv").config();
 const http = require("http");
 const express = require("express");
-const client = require("twilio")(
-	process.env.TWILIO_ACCOUNT_SID,
-	process.env.TWILIO_AUTH_TOKEN
-);
 const MessagingResponse = require("twilio").twiml.MessagingResponse;
 const app = express();
 const URL =
 	"https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
-const PS5 =
-	"https://www.bestbuy.com/site/sony-playstation-5-console/6426149.p?skuId=6426149";
-const { workerPool, runWorker, getScraperInfo } = require("./workers/main");
-
-runWorker(URL, "bestbuy");
-const sc = workerPool[0];
-
+const { runWorker, getScraperInfo } = require("./workers/main");
 const { getTimestamp } = require("./utils");
+
+runWorker(URL, "gcard");
 
 app.use(express.urlencoded({ extended: false }));
 
@@ -26,9 +18,10 @@ app.post("/sms", async (req, res) => {
 	const textReq = req.body.Body.split(" ");
 	const reqType = textReq[0].toLowerCase();
 	const scraperName = textReq[1]?.toLowerCase();
+	const url = textReq[2].toLowerCase();
 	try {
-		const [request, textRes] = getServerReply(reqType, scraperName, textReq);
-		getScraperInfo(scraperName, request);
+		const [request, textRes] = getServerReply(reqType, scraperName, url);
+		if (!request) getScraperInfo(scraperName, request, url);
 		twiml.message(textRes);
 	} catch (error) {
 		if (error.message === "SupplyChecker has not been initialized!") {
@@ -43,24 +36,7 @@ http.createServer(app).listen(process.env.PORT || 1337, () => {
 	console.log(getTimestamp(), " Express server listening on port 1337");
 });
 
-async function sendTextNotification(message) {
-	try {
-		await client.messages.create({
-			body: `${message}`,
-			from: process.env.TWILIO_PHONE_NUM,
-			to: process.env.TO_PHONE_NUM,
-		});
-		console.log(getTimestamp(), message);
-	} catch (error) {
-		console.log(
-			getTimestamp(),
-			"Something went wrong, message was not sent\n",
-			error
-		);
-	}
-}
-
-function getServerReply(reqType, scraperName, textResponse) {
+function getServerReply(reqType, scraperName, url) {
 	let response = "";
 
 	switch (reqType) {
@@ -81,88 +57,25 @@ function getServerReply(reqType, scraperName, textResponse) {
 			response = `Now initializing the stock checker.`;
 			break;
 		case "change":
-			response = `changing url of ${scraperName} to ${textResponse[2]}.`;
+			response = `changing url of ${scraperName} to ${url}.`;
 			break;
 		case "url":
-			response = `Url to track: ${sc.url}`;
+			response = `Url to track: ${url}`;
 			break;
 		case "new":
-			response = `Adding new tracker: ${scraperName} ${textResponse[2].toLowerCase()}`;
+			response = `Adding new tracker: ${scraperName} ${url}`;
 			break;
 		case "kill":
-			response = `terminating worker${scraperName}`;
+			response = `terminating worker: ${scraperName}`;
 			break;
 		default:
 			response =
-				'Type: <request-type> <tracker-name> <other-options>\n"status" - server status\n"last" - last date in stock' +
+				'Type: <request-type> <tracker-name> <url>\n"status" - server status\n"last" - last date in stock' +
 				'\n"refresh" - force refresh of page' +
-				'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n';
+				'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n' +
+				'"new" - create a new webscraper\n"kill" - stop running a scraper';
 
 			return [null, response];
 	}
 	return [reqType, response];
 }
-
-// switch () {
-// 	case "status":
-// 		twiml.message(`Server is running! Sending status...`);
-// 		return
-// 		getScraperInfo(scraperName, reqType);
-// 		break;
-// 	case "last":
-// 		twiml.message(`Getting the last in-stock date`+scraperName?"...":` for ${scraperName}...`);
-// 		getScraperInfo(scraperName, reqType);
-// 		break;
-// 	case "refresh":
-// 		twiml.message(
-// 			`Checking status now`+scraperName?"...":` for ${scraperName}...`
-// 		);
-// 		getScraperInfo(scraperName, reqType);
-
-// 		break;
-// 	case "init":
-// 		await sc.init();
-// 		twiml.message(`Now initializing the stock checker.`);
-// 		getScraperInfo(scraperName, reqType);
-
-// 		break;
-// 	case "change":
-// 		if (textResponse[1].includes("bestbuy.com")) {
-// 			twiml.message(`changing url to ${textResponse[1]}.`);
-// 			sc.changeUrl(textResponse[1]);
-// 		} else {
-// 			twiml.message(
-// 				`Url was not changed, please follow this format:\nchange bestbuy.com/example/product/page`
-// 			);
-// 		}
-// 		break;
-// 	case "url":
-// 		twiml.message(`Url to track: ${sc.url}`);
-// 		break;
-// 	case "new":
-// 		runWorker(scraperName, textResponse[2].toLowerCase());
-// 		twiml.message(
-// 			`Adding new tracker: ${scraperName} ${textResponse[2].toLowerCase()}`
-// 		);
-// 		break;
-// 	case "kill":
-// 		const worker = workerPool.find(
-// 			(worker) => worker.name === scraperName
-// 		);
-// 		if (worker) {
-// 			worker.terminate();
-// 			twiml.message("Worker terminated!");
-// 		} else {
-// 			twiml.message(
-// 				`Could not find worker named: ${scraperName}`
-// 			);
-// 		}
-// 		break;
-
-// 	default:
-// 		twiml.message(
-// 			'Type: \n"status" - server status\n"last" - last date in stock' +
-// 				'\n"refresh" - force refresh of page' +
-// 				'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
-// 		);
-// 		break;

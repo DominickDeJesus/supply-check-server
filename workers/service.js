@@ -1,10 +1,6 @@
 const { workerData, parentPort } = require("worker_threads");
 const SupplyChecker = require("../supplyChecker");
 const cron = require("node-schedule");
-const { workerPool, getStatus } = require("./main.js");
-// You can do any heavy stuff here, in a synchronous way
-// without blocking the "main thread"
-console.log(workerData);
 const sc = new SupplyChecker(workerData.url, workerData.name);
 
 sc.init()
@@ -18,34 +14,27 @@ sc.init()
 	});
 
 parentPort.on("message", async (message) => {
-	console.log(message);
-	switch (message) {
+	switch (message.reqType) {
 		case "status":
 			parentPort.postMessage(`${sc.name}: ${sc.status}`);
 			break;
 		case "last":
-			parentPort.postMessage(`${sc.name}: ${sc.last}`);
+			parentPort.postMessage(`${sc.name}: Last time in stock - ${sc.last}`);
 			break;
 		case "refresh":
 			await sc.checkStock();
 			parentPort.postMessage(`${sc.name}: Refreshed the page.`);
 			break;
 		case "init":
-			parentPort.postMessage(`${sc.name}: Initializing`);
 			await sc.init();
+			parentPort.postMessage(`${sc.name}: Initializing`);
 			break;
 		case "change":
-			sc.changeUrl();
-			parentPort.postMessage(`${sc.name}: ${sc.status}`);
+			await sc.changeUrl(message.url);
+			parentPort.postMessage(`${sc.name}: Status - ${sc.status}`);
 			break;
 		case "url":
-			parentPort.postMessage(`${sc.name}: ${sc.status}`);
-			break;
-		case "new":
-			parentPort.postMessage(`${sc.name}: ${sc.status}`);
-			break;
-		case "kill":
-			parentPort.postMessage(`${sc.name}: ${sc.status}`);
+			parentPort.postMessage(`${sc.name}: URL being tracked - ${sc.url}`);
 			break;
 	}
 });

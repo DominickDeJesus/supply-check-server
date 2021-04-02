@@ -1,12 +1,11 @@
-// index.js
 const client = require("twilio")(
 	process.env.TWILIO_ACCOUNT_SID,
 	process.env.TWILIO_AUTH_TOKEN
 );
-const workerPool = [];
-
 const { Worker } = require("worker_threads");
 const { getTimestamp } = require("../utils");
+//holds all of the workers
+const workerPool = [];
 
 function runService(workerData) {
 	const worker = new Worker("./workers/service.js", {
@@ -29,14 +28,39 @@ function runWorker(url, name) {
 	runService({ url: url, name: name });
 }
 
-function getScraperInfo(workerName, infoType, ...optionals) {
+function getScraperInfo(workerName, reqType, url) {
+	if (reqType === "kill" || reqType === "new")
+		return manageWorker(workerName, reqType, url);
+
 	const foundWorker = workerPool.find((worker) => {
-		worker.name === workerName;
+		return worker.name === workerName;
 	});
-	if (foundWorker) return foundWorker.postMessage(infoType, ...optionals);
+	if (foundWorker)
+		return foundWorker.worker.postMessage({
+			reqType: reqType,
+			url: url,
+		});
 	workerPool.forEach((worker) =>
-		worker.postMessage({ infoType: infoType, optional: optionals })
+		worker.worker.postMessage({
+			reqType: reqType,
+			url: url,
+		})
 	);
+}
+
+function manageWorker(workerName, reqType, url) {
+	const foundWorker = workerPool.find((worker) => {
+		return worker.name === workerName;
+	});
+
+	if (!foundWorker && !url.includes("bestbuy.com")) return null;
+
+	if (reqType === "kill") {
+		foundWorker.worker.terminate();
+	}
+	if (reqType === "new") {
+		runWorker(url, workerName);
+	}
 }
 
 async function sendTextNotification(message) {
