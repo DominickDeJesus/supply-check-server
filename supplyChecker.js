@@ -121,7 +121,7 @@ class SupplyChecker {
 		const cloudinary = require("cloudinary").v2;
 		this.lastMessageDate = new Date();
 		const tempPath = `./screenshot.png`;
-		const element = await page.$(this.tag);
+		const element = await this.page.$(this.tag);
 		await element.screenshot({ path: tempPath });
 		const response = await cloudinary.uploader.upload(tempPath);
 		this.lastScreenPath = response.secure_url;
