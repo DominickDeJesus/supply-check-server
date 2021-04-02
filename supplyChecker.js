@@ -13,8 +13,8 @@ class SupplyChecker {
 		this.browserOption =
 			process.platform === "linux"
 				? {
-					args: ["--no-sandbox"],
-				}
+						args: ["--no-sandbox"],
+				  }
 				: null;
 	}
 	async init() {
@@ -45,33 +45,37 @@ class SupplyChecker {
 			waitUntil: "load",
 		});
 		this.finishedInit = true;
-		this.status = "initialized"
+		this.status = "initialized";
 		console.log(getTimestamp(), " Finished initializing");
 	}
 
 	async checkStock() {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		this.status = "loading"
-		await this.page.reload();
-		if (
-			(await this.isInStock(this.page, this.tag)) &&
-			!isToday(this.lastMessageDate)
-		) {
-			await this.screenshot();
-			await this.sendTextNotification(this.url);
+		try {
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
+			this.status = "loading";
+			await this.page.reload();
+			if (
+				(await this.isInStock(this.page, this.tag)) &&
+				!isToday(this.lastMessageDate)
+			) {
+				await this.screenshot();
+				await this.sendTextNotification(this.url);
+				this.status = "waiting";
+				return true;
+			}
 			this.status = "waiting";
-			return true;
+			return false;
+		} catch (error) {
+			console.log(error);
 		}
-		this.status = "waiting";
-		return false;
 	}
 
 	async isInStock(page, tag) {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		const $ = require("cheerio");
 		try {
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
+			const $ = require("cheerio");
 			console.log(getTimestamp(), " Loading page content");
 			const html = await page.content();
 			const buttonText = $(tag, html).text();
@@ -100,7 +104,7 @@ class SupplyChecker {
 	}
 
 	async changeUrl(url) {
-		this.status = "changing"
+		this.status = "changing";
 		this.url = url;
 		this.lastMessageDate = null;
 		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
@@ -127,7 +131,7 @@ class SupplyChecker {
 	async sendTextNotification(url) {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
-		this.status = "texting"
+		this.status = "texting";
 		try {
 			const client = require("twilio")(
 				process.env.TWILIO_ACCOUNT_SID,
