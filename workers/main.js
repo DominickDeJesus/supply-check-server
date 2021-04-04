@@ -56,6 +56,8 @@ function manageWorker(workerName, reqType, url) {
 	if (!foundWorker && !url.includes("bestbuy.com")) return null;
 
 	if (reqType === "kill") {
+		const index = workerPool.indexOf(foundWorker);
+		workerPool.splice(index, 1);
 		foundWorker.worker.terminate();
 	}
 	if (reqType === "new") {

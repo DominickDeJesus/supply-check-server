@@ -16,12 +16,12 @@ app.post("/sms", async (req, res) => {
 	console.log(getTimestamp(), req.body.Body);
 	const twiml = new MessagingResponse();
 	const textReq = req.body.Body.split(" ");
-	const reqType = textReq[0].toLowerCase();
+	const reqType = textReq[0]?.toLowerCase();
 	const scraperName = textReq[1]?.toLowerCase();
-	const url = textReq[2].toLowerCase();
+	const url = textReq[2]?.toLowerCase();
 	try {
 		const [request, textRes] = getServerReply(reqType, scraperName, url);
-		if (!request) getScraperInfo(scraperName, request, url);
+		if (request) getScraperInfo(scraperName, request, url);
 		twiml.message(textRes);
 	} catch (error) {
 		if (error.message === "SupplyChecker has not been initialized!") {
@@ -33,7 +33,7 @@ app.post("/sms", async (req, res) => {
 });
 
 http.createServer(app).listen(process.env.PORT || 1337, () => {
-	console.log(getTimestamp(), " Express server listening on port 1337");
+	console.log(getTimestamp(), "Express server listening on port 1337");
 });
 
 function getServerReply(reqType, scraperName, url) {
@@ -60,7 +60,7 @@ function getServerReply(reqType, scraperName, url) {
 			response = `changing url of ${scraperName} to ${url}.`;
 			break;
 		case "url":
-			response = `Url to track: ${url}`;
+			response = `Getting url for ${scraperName}`;
 			break;
 		case "new":
 			response = `Adding new tracker: ${scraperName} ${url}`;
