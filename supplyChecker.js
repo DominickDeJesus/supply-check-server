@@ -9,7 +9,7 @@ class SupplyChecker {
 		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
-		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
+		this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
 				? {
