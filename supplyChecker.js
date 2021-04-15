@@ -112,7 +112,7 @@ class SupplyChecker {
 		this.status = "changing";
 		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
-		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
+		this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
