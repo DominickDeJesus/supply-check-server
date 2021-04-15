@@ -53,6 +53,9 @@ class SupplyChecker {
 		try {
 			if (!this.finishedInit)
 				throw new Error("SupplyChecker has not been initialized!");
+			if (this.status === "loading")
+				throw new Error("SupplyChecker is already loading a page");
+
 			this.status = "loading";
 			await this.page.reload();
 			if (
