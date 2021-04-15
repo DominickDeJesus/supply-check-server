@@ -58,6 +58,8 @@ class SupplyChecker {
 
 			this.status = "loading";
 			await this.page.reload();
+			await this.page.waitForSelector(this.tag);
+
 			if (
 				(await this.isInStock(this.page, this.tag)) &&
 				!isToday(this.lastMessageDate)
