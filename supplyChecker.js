@@ -6,10 +6,10 @@ class SupplyChecker {
 	constructor(url) {
 		this.finishedInit = false;
 		this.status = "uninitialized";
-		this.url = url;
+		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
-		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
+		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
 				? {
@@ -110,9 +110,9 @@ class SupplyChecker {
 
 	async changeUrl(url) {
 		this.status = "changing";
-		this.url = url;
+		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
-		this.tag = `button[data-sku-id="${url.split("skuId=")[1]}"]`;
+		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
