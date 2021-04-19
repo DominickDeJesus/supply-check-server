@@ -63,7 +63,7 @@ class SupplyChecker {
 
 		if (
 			(await this.isInStock(this.page, this.tag)) &&
-			!isToday(this.lastMessageDate)
+			!this.isToday(this.lastMessageDate)
 		) {
 			await this.screenshot();
 			await this.sendTextNotification(this.url);
