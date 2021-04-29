@@ -1,6 +1,11 @@
 require("dotenv").config();
 const puppeteer = require("puppeteer");
-const { getTimestamp, isToday } = require("./utils");
+const client = require("twilio")(
+	process.env.TWILIO_ACCOUNT_SID,
+	process.env.TWILIO_AUTH_TOKEN
+);
+const $ = require("cheerio");
+const cloudinary = require("cloudinary").v2;
 
 class SupplyChecker {
 	constructor(url) {
@@ -18,7 +23,7 @@ class SupplyChecker {
 				: null;
 	}
 	async init() {
-		console.log(getTimestamp(), " Initializing browser");
+		this.print("info", "Initializing browser");
 
 		this.browser = await puppeteer.launch({
 			headless: true,
@@ -46,7 +51,7 @@ class SupplyChecker {
 		});
 		this.finishedInit = true;
 		this.status = "initialized";
-		console.log(getTimestamp(), " Finished initializing");
+		this.print("info", "Finished initializing");
 	}
 
 	async checkStock() {
@@ -57,8 +62,11 @@ class SupplyChecker {
 				throw new Error("SupplyChecker is already loading a page");
 
 			this.status = "loading";
-			await this.page.reload();
+			await this.page.reload({
+				waitUntil: "load",
+			});
 			await this.page.waitForSelector(this.tag);
+			this.print("info", "reloaded");
 
 			if (
 				(await this.isInStock(this.page, this.tag)) &&
@@ -72,7 +80,9 @@ class SupplyChecker {
 			this.status = "waiting";
 			return false;
 		} catch (error) {
-			console.log(error);
+			this.status = "error";
+			this.print("error", this.name, error);
+			return false;
 		}
 	}
 
@@ -80,30 +90,27 @@ class SupplyChecker {
 		try {
 			if (!this.finishedInit)
 				throw new Error("SupplyChecker has not been initialized!");
-			const $ = require("cheerio");
-			console.log(getTimestamp(), " Loading page content");
+			this.print("info", "Loading page content");
 			const html = await page.content();
 			const buttonText = $(tag, html).text();
 
 			if (buttonText.toLocaleLowerCase() === "sold out") {
-				console.log(
-					getTimestamp(),
-					` Out of stock! Tag content: ${buttonText}`
-				);
+				this.print("info", `Out of stock! Tag content: ${buttonText}`);
 				return false;
 			} else if (buttonText.toLocaleLowerCase().includes("add")) {
-				console.log(getTimestamp(), " In stock!!! Tag content: ", buttonText);
+				this.print("instock", "In stock!!! Tag content: ", buttonText);
 				return true;
 			} else {
-				console.log(
-					getTimestamp(),
-					" Button content unknown! Tag html content: ",
+				this.print(
+					"info",
+					"Button content unknown! Tag html content: ",
 					`${$(tag, html).html()}`
 				);
 				return false;
 			}
 		} catch (error) {
-			console.log(error);
+			this.status = "error";
+			this.print("error", this.name, error);
 			return false;
 		}
 	}
@@ -116,14 +123,13 @@ class SupplyChecker {
 		await this.page.goto(this.url, {
 			waitUntil: "load",
 		});
-		console.log(getTimestamp(), "Changed the url to " + url);
+		this.print("info", "Changed the url to " + url);
 		await this.checkStock();
 	}
 
 	async screenshot() {
 		if (!this.finishedInit)
 			throw new Error("SupplyChecker has not been initialized!");
-		const cloudinary = require("cloudinary").v2;
 		this.lastMessageDate = new Date();
 		const tempPath = `./screenshot.png`;
 		const element = await this.page.$(this.tag);
@@ -131,16 +137,12 @@ class SupplyChecker {
 		const response = await cloudinary.uploader.upload(tempPath);
 		this.lastScreenPath = response.secure_url;
 	}
-	async sendTextNotification(url) {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		this.status = "texting";
-		try {
-			const client = require("twilio")(
-				process.env.TWILIO_ACCOUNT_SID,
-				process.env.TWILIO_AUTH_TOKEN
-			);
 
+	async sendTextNotification(url) {
+		try {
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
+			this.status = "texting";
 			const message = await client.messages.create({
 				body: `In stock alert!!! \n\n${url}`,
 				from: process.env.TWILIO_PHONE_NUM,
@@ -148,14 +150,49 @@ class SupplyChecker {
 				to: process.env.TO_PHONE_NUM,
 			});
 
-			console.log(getTimestamp(), " Message sent! ", message.sid);
+			this.print("info", "Message sent! ", message.sid);
 		} catch (error) {
-			console.log(
-				getTimestamp(),
+			this.status = "error";
+			this.print(
+				"error",
 				"Something went wrong, message was not sent\n",
 				error
 			);
 		}
+	}
+
+	getTimestamp() {
+		return (
+			"[" +
+			new Date().toLocaleString("en-US", { timeZone: "America/New_York" }) +
+			"]"
+		);
+	}
+
+	print(alert, ...message) {
+		const time = this.getTimestamp();
+		let style;
+		switch (alert) {
+			case "error":
+				style = "\x1b[31m";
+				break;
+			case "instock":
+				style = "\x1b[32m\x1b[4m";
+				break;
+			default:
+				style = "\x1b[0m";
+		}
+		console.log(style, time, this.name + ":", ...message);
+	}
+
+	isToday(someDate) {
+		if (!someDate) return false;
+		const today = new Date();
+		return (
+			someDate.getDate() == today.getDate() &&
+			someDate.getMonth() == today.getMonth() &&
+			someDate.getFullYear() == today.getFullYear()
+		);
 	}
 }
 
