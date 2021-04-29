@@ -15,7 +15,7 @@ class SupplyChecker {
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
 		this.name = name;
-		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
+		this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
 				? {
@@ -25,7 +25,6 @@ class SupplyChecker {
 	}
 	async init() {
 		this.print("info", "Initializing browser");
-
 		this.browser = await puppeteer.launch({
 			headless: true,
 			...this.browserOption,
@@ -53,6 +52,7 @@ class SupplyChecker {
 		this.finishedInit = true;
 		this.status = "initialized";
 		this.print("info", "Finished initializing");
+		this.checkStock();
 	}
 
 	async checkStock() {
@@ -61,13 +61,13 @@ class SupplyChecker {
 				throw new Error("SupplyChecker has not been initialized!");
 			if (this.status === "loading")
 				throw new Error("SupplyChecker is already loading a page");
-
+			this.print("info", "Loading page content");
 			this.status = "loading";
+
 			await this.page.reload({
 				waitUntil: "load",
 			});
 			await this.page.waitForSelector(this.tag);
-			this.print("info", "reloaded");
 
 			if (
 				(await this.isInStock(this.page, this.tag)) &&
@@ -91,7 +91,6 @@ class SupplyChecker {
 		try {
 			if (!this.finishedInit)
 				throw new Error("SupplyChecker has not been initialized!");
-			this.print("info", "Loading page content");
 			const html = await page.content();
 			const buttonText = $(tag, html).text();
 
@@ -117,26 +116,36 @@ class SupplyChecker {
 	}
 
 	async changeUrl(url) {
-		this.status = "changing";
-		this.url = url.toLocaleLowerCase();
-		this.lastMessageDate = null;
-		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
-		await this.page.goto(this.url, {
-			waitUntil: "load",
-		});
-		this.print("info", "Changed the url to " + url);
-		await this.checkStock();
+		try {
+			this.status = "changing";
+			this.url = url.toLocaleLowerCase();
+			this.lastMessageDate = null;
+			this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
+			await this.page.goto(this.url, {
+				waitUntil: "load",
+			});
+			this.print("info", "Changed the url to " + url);
+			await this.checkStock();
+		} catch (error) {
+			this.status = "error";
+			this.print("error", this.name, error);
+		}
 	}
 
 	async screenshot() {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		this.lastMessageDate = new Date();
-		const tempPath = `./screenshot.png`;
-		const element = await this.page.$(this.tag);
-		await element.screenshot({ path: tempPath });
-		const response = await cloudinary.uploader.upload(tempPath);
-		this.lastScreenPath = response.secure_url;
+		try {
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
+			this.lastMessageDate = new Date();
+			const tempPath = `./screenshot.png`;
+			const element = await this.page.$(this.tag);
+			await element.screenshot({ path: tempPath });
+			const response = await cloudinary.uploader.upload(tempPath);
+			this.lastScreenPath = response.secure_url;
+		} catch (error) {
+			this.status = "error";
+			this.print("error", this.name, error);
+		}
 	}
 
 	async sendTextNotification(url) {
@@ -183,7 +192,7 @@ class SupplyChecker {
 			default:
 				style = "\x1b[0m";
 		}
-		console.log(style, time, this.name + ":", ...message);
+		console.log(style + time, this.name + ":", ...message);
 	}
 
 	isToday(someDate) {
