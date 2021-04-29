@@ -8,7 +8,7 @@ const app = express();
 const URL =
 	"https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
 
-const sc = new SupplyChecker(URL);
+const sc = new SupplyChecker(URL, "GPU");
 const { getTimestamp } = require("./utils");
 
 sc.init()
@@ -30,9 +30,7 @@ app.post("/sms", async (req, res) => {
 	try {
 		switch (textResponse[0].toLowerCase()) {
 			case "status":
-				twiml.message(
-					`Server is running! Status: ${sc.status}`
-				);
+				twiml.message(`Server is running! Status: ${sc.status}`);
 				break;
 			case "last":
 				twiml.message(`Last in stock on: ${sc.lastMessageDate || "Unknown."}`);
@@ -63,8 +61,8 @@ app.post("/sms", async (req, res) => {
 			default:
 				twiml.message(
 					'Type: \n"status" - server status\n"last" - last date in stock' +
-					'\n"refresh" - force refresh of page' +
-					'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
+						'\n"refresh" - force refresh of page' +
+						'\n"init" - initialize the stock checker\n"change" - change the url to check\n"url" - check the url to monitor\n'
 				);
 				break;
 		}

@@ -8,12 +8,13 @@ const $ = require("cheerio");
 const cloudinary = require("cloudinary").v2;
 
 class SupplyChecker {
-	constructor(url) {
+	constructor(url, name) {
 		this.finishedInit = false;
 		this.status = "uninitialized";
 		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
+		this.name = name;
 		this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
@@ -70,7 +71,7 @@ class SupplyChecker {
 
 			if (
 				(await this.isInStock(this.page, this.tag)) &&
-				!isToday(this.lastMessageDate)
+				!this.isToday(this.lastMessageDate)
 			) {
 				await this.screenshot();
 				await this.sendTextNotification(this.url);
