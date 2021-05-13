@@ -1,6 +1,14 @@
 ### Stock Checking Server
 
-This server will check the supply of a given the link to a bestbuy product page. When the product has been restocked, the user will recieve a text message with the link to the product.
+This server will check the supply of a given the link to a product page. When the product has been restocked, the user will receive a text message with the link to the product.
+
+## Supported Websites
+
+- Bestbuy
+- Walmart
+- Newegg
+- Gamestop
+- Amazon
 
 ## Development Setup
 
@@ -11,7 +19,7 @@ cp sample.env .env
 npm install
 ```
 
-Sing up for a twilio account and go to the developer console.
+Sign up for a twilio account and go to the developer console.
 
 https://www.twilio.com/login
 
