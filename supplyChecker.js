@@ -19,18 +19,27 @@ class SupplyChecker {
 		this.browserOption =
 			process.platform === "linux"
 				? {
-						args: ["--no-sandbox"],
+						args: ["--no-sandbox", "--disable-setuid-sandbox"],
+						executablePath: "chromium-browser",
 				  }
 				: null;
 	}
+
 	async init() {
+		if (this.status !== "uninitialized") return;
 		this.print("info", "Initializing browser");
+
+		const hostName = this.getHostName(this.url);
+		this.setupForWebsite(hostName);
 		this.browser = await puppeteer.launch({
 			headless: true,
 			...this.browserOption,
 		});
 
 		this.page = await this.browser.newPage();
+		this.page.setUserAgent(
+			`Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36`
+		);
 		await this.page.setDefaultNavigationTimeout(0);
 		await this.page.setRequestInterception(true);
 
@@ -61,9 +70,8 @@ class SupplyChecker {
 				throw new Error("SupplyChecker has not been initialized!");
 			if (this.status === "loading")
 				throw new Error("SupplyChecker is already loading a page");
-			this.print("info", "Loading page content");
 			this.status = "loading";
-
+			this.print("info", "checking stock");
 			await this.page.reload({
 				waitUntil: "load",
 			});
@@ -91,16 +99,20 @@ class SupplyChecker {
 		try {
 			if (!this.finishedInit)
 				throw new Error("SupplyChecker has not been initialized!");
+			this.print("info", "Loading page content");
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
 			const html = await page.content();
-			const buttonText = $(tag, html).text();
+			const buttonText = $(tag, html).text().trim().toLocaleLowerCase();
 
-			if (buttonText.toLocaleLowerCase() === "sold out") {
+			if (buttonText.includes(this.negativeString)) {
 				this.print("info", `Out of stock! Tag content: ${buttonText}`);
 				return false;
-			} else if (buttonText.toLocaleLowerCase().includes("add")) {
-				this.print("instock", "In stock!!! Tag content: ", buttonText);
+			} else if (buttonText.includes(this.positiveString)) {
+				this.print("instock", `In stock!!! Tag content: ${buttonText}`);
 				return true;
 			} else {
+				this.screenshot();
 				this.print(
 					"info",
 					"Button content unknown! Tag html content: ",
@@ -120,15 +132,17 @@ class SupplyChecker {
 			this.status = "changing";
 			this.url = url.toLocaleLowerCase();
 			this.lastMessageDate = null;
-			this.tag = `button[data-sku-id="${url.split("skuid=")[1]}"]`;
+			const host = this.getHostName(this.url);
+			this.setupForWebsite(host);
 			await this.page.goto(this.url, {
 				waitUntil: "load",
 			});
+
 			this.print("info", "Changed the url to " + url);
 			await this.checkStock();
 		} catch (error) {
-			this.status = "error";
-			this.print("error", this.name, error);
+			this.print("error", error);
+			throw new Error("Cant change the url!");
 		}
 	}
 
@@ -168,6 +182,56 @@ class SupplyChecker {
 				"Something went wrong, message was not sent\n",
 				error
 			);
+		}
+	}
+
+	setupForWebsite(website) {
+		switch (website) {
+			case "amazon.com":
+				this.tag = `#availability span`;
+				this.positiveString = "in stock.";
+				this.negativeString =
+					"we don't know when or if this item will be back in stock.";
+				break;
+			case "bestbuy.com":
+				this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
+				this.positiveString = "add";
+				this.negativeString = "sold out";
+				break;
+			case "walmart.com":
+				//TODO: test these values thoroughly
+				this.tag = `.spin-button-children`;
+				this.positiveString = "add to cart";
+				this.negativeString = "get in-stock alert.";
+				break;
+			case "newegg.com":
+				//TODO: test these values thoroughly
+				this.tag = `.product-inventory strong`;
+				this.positiveString = "in stock.";
+				this.negativeString = "out of stock.";
+				break;
+			case "gamestop.com":
+				//TODO: test these values thoroughly
+				this.tag = `.add-to-cart`;
+				this.positiveString = "add to cart";
+				this.negativeString = "not available";
+				break;
+			default:
+				throw Error("This website is not supported!");
+		}
+	}
+
+	getHostName(url) {
+		const match = url.match(/:\/\/(www[0-9]?\.)?(.[^/:]+)/i);
+		if (
+			match != null &&
+			match.length > 2 &&
+			typeof match[2] === "string" &&
+			match[2].length > 0
+		) {
+			return match[2];
+		} else {
+			return null;
 		}
 	}
 
