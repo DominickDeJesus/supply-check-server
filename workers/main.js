@@ -24,17 +24,18 @@ function runService(workerData) {
 	});
 }
 
-function runWorker(url, name) {
-	runService({ url: url, name: name });
-}
-
 function getScraperInfo(workerName, reqType, url) {
-	if (reqType === "kill" || reqType === "new")
-		return manageWorker(workerName, reqType, url);
-
 	const foundWorker = workerPool.find((worker) => {
 		return worker.name === workerName;
 	});
+	if (reqType === "kill") {
+		const index = workerPool.indexOf(foundWorker);
+		workerPool.splice(index, 1);
+		foundWorker.worker.terminate();
+	}
+	if (reqType === "new") {
+		runService({ url: url, name: workerName });
+	}
 	if (foundWorker)
 		return foundWorker.worker.postMessage({
 			reqType: reqType,
@@ -46,23 +47,6 @@ function getScraperInfo(workerName, reqType, url) {
 			url: url,
 		})
 	);
-}
-
-function manageWorker(workerName, reqType, url) {
-	const foundWorker = workerPool.find((worker) => {
-		return worker.name === workerName;
-	});
-
-	if (!foundWorker && !url.includes("bestbuy.com")) return null;
-
-	if (reqType === "kill") {
-		const index = workerPool.indexOf(foundWorker);
-		workerPool.splice(index, 1);
-		foundWorker.worker.terminate();
-	}
-	if (reqType === "new") {
-		runWorker(url, workerName);
-	}
 }
 
 async function sendTextNotification(message) {
@@ -82,4 +66,4 @@ async function sendTextNotification(message) {
 	}
 }
 
-module.exports = { workerPool, runWorker, getScraperInfo };
+module.exports = { workerPool, getScraperInfo, runService };

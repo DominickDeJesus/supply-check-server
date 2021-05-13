@@ -5,10 +5,10 @@ const MessagingResponse = require("twilio").twiml.MessagingResponse;
 const app = express();
 const URL =
 	"https://www.bestbuy.com/site/nvidia-geforce-rtx-3080-10gb-gddr6x-pci-express-4-0-graphics-card-titanium-and-black/6429440.p?skuId=6429440";
-const { runWorker, getScraperInfo } = require("./workers/main");
+const { runService, getScraperInfo } = require("./workers/main");
 const { getTimestamp } = require("./utils");
 
-runWorker(URL, "gcard");
+runService({ url: URL, name: "gcard" });
 
 app.use(express.urlencoded({ extended: false }));
 
