@@ -52,7 +52,7 @@ app.post("/sms", async (req, res) => {
 				twiml.message(`Now initializing the stock checker.`);
 				break;
 			case "change":
-				sc.changeUrl(textResponse[1]);
+				await sc.changeUrl(textResponse[1]);
 				twiml.message(`changing url to ${textResponse[1]}.`);
 				break;
 			case "url":
