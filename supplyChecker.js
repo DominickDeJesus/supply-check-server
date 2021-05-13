@@ -1,16 +1,21 @@
 require("dotenv").config();
 const puppeteer = require("puppeteer");
+const client = require("twilio")(
+	process.env.TWILIO_ACCOUNT_SID,
+	process.env.TWILIO_AUTH_TOKEN
+);
+const $ = require("cheerio");
+const cloudinary = require("cloudinary").v2;
 
 class SupplyChecker {
 	constructor(url, name) {
-		this.name = name;
 		this.finishedInit = false;
 		this.status = "uninitialized";
 		this.url = url.toLocaleLowerCase();
 		this.lastMessageDate = null;
 		this.lastScreenPath = null;
-		this.tag = null;
-		this.positiveString = null;
+		this.name = name;
+		this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
 		this.browserOption =
 			process.platform === "linux"
 				? {
@@ -63,12 +68,13 @@ class SupplyChecker {
 		try {
 			if (!this.finishedInit)
 				throw new Error("SupplyChecker has not been initialized!");
+			if (this.status === "loading")
+				throw new Error("SupplyChecker is already loading a page");
 			this.status = "loading";
 			this.print("info", "checking stock");
 			await this.page.reload({
 				waitUntil: "load",
 			});
-			this.print("info", "reloaded");
 			await this.page.waitForSelector(this.tag);
 
 			if (
@@ -83,16 +89,19 @@ class SupplyChecker {
 			this.status = "waiting";
 			return false;
 		} catch (error) {
+			this.status = "error";
 			this.print("error", this.name, error);
+			return false;
 		}
 	}
 
 	async isInStock(page, tag) {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		const $ = require("cheerio");
 		try {
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
 			this.print("info", "Loading page content");
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
 			const html = await page.content();
 			const buttonText = $(tag, html).text().trim().toLocaleLowerCase();
 
@@ -112,6 +121,7 @@ class SupplyChecker {
 				return false;
 			}
 		} catch (error) {
+			this.status = "error";
 			this.print("error", this.name, error);
 			return false;
 		}
@@ -137,27 +147,26 @@ class SupplyChecker {
 	}
 
 	async screenshot() {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		const cloudinary = require("cloudinary").v2;
-		this.lastMessageDate = new Date();
-		const tempPath = `./screenshot.png`;
-		const element = await this.page.$(this.tag);
-		await element.screenshot({ path: tempPath });
-		const response = await cloudinary.uploader.upload(tempPath);
-		this.lastScreenPath = response.secure_url;
+		try {
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
+			this.lastMessageDate = new Date();
+			const tempPath = `./screenshot.png`;
+			const element = await this.page.$(this.tag);
+			await element.screenshot({ path: tempPath });
+			const response = await cloudinary.uploader.upload(tempPath);
+			this.lastScreenPath = response.secure_url;
+		} catch (error) {
+			this.status = "error";
+			this.print("error", this.name, error);
+		}
 	}
 
 	async sendTextNotification(url) {
-		if (!this.finishedInit)
-			throw new Error("SupplyChecker has not been initialized!");
-		this.status = "texting";
 		try {
-			const client = require("twilio")(
-				process.env.TWILIO_ACCOUNT_SID,
-				process.env.TWILIO_AUTH_TOKEN
-			);
-
+			if (!this.finishedInit)
+				throw new Error("SupplyChecker has not been initialized!");
+			this.status = "texting";
 			const message = await client.messages.create({
 				body: `In stock alert!!! \n\n${url}`,
 				from: process.env.TWILIO_PHONE_NUM,
@@ -167,6 +176,7 @@ class SupplyChecker {
 
 			this.print("info", "Message sent! ", message.sid);
 		} catch (error) {
+			this.status = "error";
 			this.print(
 				"error",
 				"Something went wrong, message was not sent\n",
@@ -232,6 +242,7 @@ class SupplyChecker {
 			"]"
 		);
 	}
+
 	print(alert, ...message) {
 		const time = this.getTimestamp();
 		let style;
