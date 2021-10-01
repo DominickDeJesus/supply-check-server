@@ -16,6 +16,8 @@ class SupplyChecker {
 		this.lastScreenPath = null;
 		this.name = name;
 		this.tag = `button[data-sku-id="${this.url.split("skuid=")[1]}"]`;
+		this.negativeTag = null;
+		this.positiveString = null;
 		this.browserOption =
 			process.platform === "linux"
 				? {
@@ -90,7 +92,7 @@ class SupplyChecker {
 			return false;
 		} catch (error) {
 			this.status = "error";
-			this.print("error", this.name, error);
+			this.print("error", this.name, error.message);
 			return false;
 		}
 	}
@@ -105,18 +107,22 @@ class SupplyChecker {
 			const html = await page.content();
 			const buttonText = $(tag, html).text().trim().toLocaleLowerCase();
 
-			if (buttonText.includes(this.negativeString)) {
-				this.print("info", `Out of stock! Tag content: ${buttonText}`);
+			const negButtonText = this.negativeTag
+				? $(this.negativeTag, html).text().trim().toLocaleLowerCase()
+				: "";
+
+			if (buttonText.includes(this.negativeString) || negButtonText) {
+				this.print("info", `Out of stock!`);
 				return false;
 			} else if (buttonText.includes(this.positiveString)) {
 				this.print("instock", `In stock!!! Tag content: ${buttonText}`);
 				return true;
 			} else {
-				this.screenshot();
+				//this.screenshot();
 				this.print(
 					"info",
 					"Button content unknown! Tag html content: ",
-					`${$(tag, html).html()}`
+					`${$(tag, html).html().trim().substring(0, 30)}`
 				);
 				return false;
 			}
@@ -216,6 +222,13 @@ class SupplyChecker {
 				this.positiveString = "add to cart";
 				this.negativeString = "not available";
 				break;
+			// case "target.com":
+			// 	//TODO: test these values thoroughly
+			// 	this.tag = `.add-to-cart`;
+			// 	this.negativeTag = `div[data-test="notAvailableForShippingMessage"]`;
+			// 	this.positiveString = "add to cart";
+			// 	this.negativeString = "not available";
+			// 	break;
 			default:
 				throw Error("This website is not supported!");
 		}
